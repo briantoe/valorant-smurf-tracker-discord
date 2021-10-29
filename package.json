@@ -1,26 +1,29 @@
 {
-  "name": "Valorant Smurf Tracker",
+  "name": "valorant-discord-stat-tracker",
   "version": "1.0.0",
   "description": "Smurf account tracking made simpler",
-  "main": "app.js",
+  "main": "bot.js",
   "scripts": {
-    "start": "node bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/briantoe/valorant-smurf-tracker-discord.git"
+  },
   "keywords": [
-    "discord",
-    "bot",
-    "example",
-    "example",
+    "valorant",
     "discord",
     "bot"
   ],
   "author": "briantoe",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/briantoe/valorant-smurf-tracker-discord/issues"
+  },
+  "homepage": "https://github.com/briantoe/valorant-smurf-tracker-discord#readme",
   "dependencies": {
-    "@discordjs/opus": "^0.5.0",
-    "discord.js": "^12.5.3",
+    "discord.js": "^13.2.0",
     "dotenv": "^10.0.0",
-    "glob": "^7.1.7"
+    "glob": "^7.2.0"
   }
 }
