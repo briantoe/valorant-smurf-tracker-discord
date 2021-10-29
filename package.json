@@ -1,7 +1,7 @@
 {
-  "name": "botexample",
-  "version": "2.0.0",
-  "description": "A Simple Discord Bot Example",
+  "name": "Valorant Smurf Tracker",
+  "version": "1.0.0",
+  "description": "Smurf account tracking made simpler",
   "main": "app.js",
   "scripts": {
     "start": "node bot.js",
@@ -15,7 +15,7 @@
     "discord",
     "bot"
   ],
-  "author": "lemn",
+  "author": "briantoe",
   "license": "MIT",
   "dependencies": {
     "@discordjs/opus": "^0.5.0",
