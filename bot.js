@@ -1,6 +1,7 @@
 const { Client, Collection } = require('discord.js');
 const path = require('path');
 const glob = require('glob');
+const dotenv = require('dotenv');
 
 const config = require('./config.json');
 const client = new Client();
@@ -9,6 +10,9 @@ const client = new Client();
 // Store these collections on the client object so we can access them inside commands etc.
 client.commands = new Collection();
 client.aliases = new Collection();
+
+dotenv.config();
+
 
 function loadCommands(commandDirectoryPath) {
   // Create an empty array that will store all the file paths for the commands,
@@ -84,4 +88,4 @@ client
     }
   });
 
-client.login(config.token);
+client.login(process.env.TOKEN);
