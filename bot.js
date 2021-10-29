@@ -80,6 +80,7 @@ client
       command.execute(client, message, args);
     } catch (err) {
       console.error(err);
+      command.syntax(message);
     }
   });
 
