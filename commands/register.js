@@ -1,20 +1,23 @@
 /**
- * @author lemn
+ * @author briantoe
  * @year 2021
  */
+const { Client } = require('pg');
+const dotenv = require('dotenv');
 
 module.exports = {
-  name: 'command template',
-  description: 'a description for your command',
+  name: 'register',
+  description: 'Register an account with the bot and makes the account trackable.',
   execute(client, message, args) {
     // write your logic here
+    
   },
   syntax(message) {
     // syntax command
     const embed = new MessageEmbed()
       .addFields({
         name: 'Usage',
-        value: `${prefix}${this.name} `,
+        value: `${prefix}${this.name} <username>#<tagline>`,
       })
       .setDescription(`**${this.description}**`)
       .setColor(getTemocColor());
