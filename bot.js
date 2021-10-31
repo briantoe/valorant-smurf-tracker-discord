@@ -1,10 +1,17 @@
-const { Client, Collection } = require('discord.js');
+const { Client, Collection, Intents } = require('discord.js');
 const path = require('path');
 const glob = require('glob');
 const dotenv = require('dotenv');
 
 const config = require('./config.json');
-const client = new Client();
+const client = new Client({
+  intents: [
+    Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.GUILD_MESSAGES,
+    Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+    Intents.FLAGS.GUILDS,
+  ],
+});
 
 // Create two Collections where we can store our commands and aliases in.
 // Store these collections on the client object so we can access them inside commands etc.
@@ -12,7 +19,6 @@ client.commands = new Collection();
 client.aliases = new Collection();
 
 dotenv.config();
-
 
 function loadCommands(commandDirectoryPath) {
   // Create an empty array that will store all the file paths for the commands,
@@ -49,43 +55,53 @@ function loadCommands(commandDirectoryPath) {
 // Load commands from the './commands' folder
 loadCommands('commands');
 
-client
-  .on('ready', () => {
-    console.log('Bot is ready...');
-  })
-  // Client message event, contains the logic for the command handler.
-  .on('message', (message) => {
-    // Make sure the message contains the command prefix from the config.json.
-    if (!message.content.startsWith(config.prefix)) return;
-    // Make sure the message author isn't a bot
-    if (message.author.bot) return;
-    // Make sure the channel the command is called in is a text channel.
-    if (message.channel.type !== 'text') return;
+client.on('ready', () => {
+  console.log('Bot is ready...');
+});
+// Client message event, contains the logic for the command handler.
+client.on('messageCreate', (message) => {
+  // Make sure the message contains the command prefix from the config.json.
+  if (!message.content.startsWith(config.prefix)) {
+    console.log('does not start with prefix');
+    return;
+  }
+  // Make sure the message author isn't a bot
+  if (message.author.bot) {
+    console.log('author is a bot');
+    return;
+  }
+  // Make sure the channel the command is called in is a text channel.
+  // if (message.channel.type !== 'text') {
+  //   console.log("not a text channel??")
+  //   return;
+  // }
 
-    // Split the message content and store the command called, and the args.
-    const messageSplit = message.content.split(/\s+/g);
-    const cmd = messageSplit[0].slice(config.prefix.length);
-    const args = messageSplit.slice(1);
+  // Split the message content and store the command called, and the args.
+  const messageSplit = message.content.split(/\s+/g);
+  const cmd = messageSplit[0].slice(config.prefix.length);
+  const args = messageSplit.slice(1);
 
-    try {
-      // Check if the command called exists in either the commands Collection
-      // or the aliases Collection.
-      let command;
-      if (client.commands.has(cmd)) {
-        command = client.commands.get(cmd);
-      } else if (client.aliases.has(cmd)) {
-        command = client.commands.get(client.aliases.get(cmd));
-      }
-
-      // Make sure command is defined.
-      if (!command) return;
-
-      // If the command exists then run the execute function inside the command file.
-      command.execute(client, message, args);
-    } catch (err) {
-      console.error(err);
-      command.syntax(message);
+  try {
+    // Check if the command called exists in either the commands Collection
+    // or the aliases Collection.
+    let command;
+    
+    if (client.commands.has(cmd.toLowerCase())) {
+      command = client.commands.get(cmd);
+    } else if (client.aliases.has(cmd)) {
+      command = client.commands.get(client.aliases.get(cmd));
     }
-  });
+
+    // Make sure command is defined.
+    if (!command) return;
+
+    // If the command exists then run the execute function inside the command file.
+    command.execute(client, message, args);
+  } catch (err) {
+    console.error(err);
+    console.log(command);
+    command.syntax(message);
+  }
+});
 
 client.login(process.env.TOKEN);

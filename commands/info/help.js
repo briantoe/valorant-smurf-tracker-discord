@@ -12,6 +12,6 @@ module.exports = {
       .setColor('RANDOM')
       .setDescription(commandString);
 
-    message.channel.send({ embed });
+    message.channel.send({embeds: [embed]});
   },
 };

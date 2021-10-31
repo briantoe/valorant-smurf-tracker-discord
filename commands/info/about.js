@@ -2,6 +2,7 @@ const { MessageEmbed } = require('discord.js');
 
 module.exports = {
   name: 'about', // Command name (what's gonna be used to call the command)
+  description: 'about, duh',
   aliases: ['info'], // Command aliases
 
   execute(client, message) {
@@ -14,7 +15,7 @@ module.exports = {
           "\n*Here's some sample text for this info message.*"
       )
       .setFooter('Discord Example Bot', client.user.displayAvatarURL);
-
-    message.channel.send({ embed });
+    console.log(embed);
+    message.channel.send({embeds: [embed]});
   },
 };

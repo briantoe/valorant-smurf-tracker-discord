@@ -18,7 +18,7 @@ module.exports = {
       .addField('Uptime', formatTime(process.uptime()), true)
       .setFooter('Discord Example Bot', client.user.displayAvatarURL);
 
-    message.channel.send({ embed });
+    message.channel.send({ embeds: [embed] });
   },
 };
 
