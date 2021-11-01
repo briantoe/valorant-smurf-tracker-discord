@@ -15,6 +15,12 @@ const pgPool = new Pool({
   },
 });
 
+async function getMMR(username, tagline) {
+  valAPI.getMMR('v1', 'na', username, tagline).then((value) => {
+    return value.data.currenttierpatched;
+  });
+}
+
 module.exports = {
   name: 'register',
   description:
@@ -29,33 +35,66 @@ module.exports = {
       return;
     }
 
-    const [username, tagline] = args[0].split('#');
-    const text = `INSERT INTO ${database}(username, tagline) VALUES($1, $2) RETURNING *`;
-    pgPool.query(text, [username, tagline], (err, res) => {
-      if (err) {
-        if (err.code === '23505') {
-          const embed = new MessageEmbed()
-            .addFields({
-              name: 'Error',
-              value: `**${username}#${tagline}** already exists!`,
-            })
-            .setColor('RANDOM');
-          message.channel.send({ embeds: [embed] });
-        } else {
-          const msg = `Your registration failed for some reason\n**Error Code:** ${err.code}`;
-          const embed = errorEmbed(msg);
-          message.channel.send({ embeds: [embed] });
-        }
-        console.log(err.stack);
-        return;
-      } else {
-        const msg = `**${username}#${tagline}** has been registered`;
-        const embed = successEmbed(msg);
-        message.channel.send({ embeds: [embed] });
-      }
-
-      //
+    const placeholderEmbed = new MessageEmbed().addFields({
+      name: 'Fetching rank data...',
+      value: 'Please wait :smile:',
     });
+
+    message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
+      const [username, tagline] = args[0].split('#');
+      let rank, tier;
+      valAPI
+        .getMMR('v1', 'naa', username, tagline)
+        .then((value) => {
+          console.log(value);
+          [rank, tier] = value.data.currenttierpatched.split(' ');
+        })
+        .catch((e) => {
+          console.error(e);
+        })
+        .finally(() => {
+          postToDatabase(username, tagline, rank, tier, sentMsg);
+        });
+    });
+
+    function postToDatabase(username, tagline, rank, tier, message) {
+      const guildId = message.guild.id;
+      const text = `INSERT INTO ${database}(username, tagline, rank, tier, server_id) VALUES($1, $2, $3, $4, $5) RETURNING *`;
+      pgPool.query(
+        text,
+        [username, tagline, rank, tier, guildId],
+        (err, res) => {
+          if (err) {
+            if (err.code === '23505') {
+              const embed = new MessageEmbed()
+                .addFields({
+                  name: 'Error',
+                  value: `**${username}#${tagline}** already exists!`,
+                })
+                .setColor('RANDOM');
+              message.edit({ embeds: [embed] });
+            } else {
+              const msg = `Your registration failed for some reason\n**Error Code:** ${err.code}`;
+              const embed = errorEmbed(msg);
+              message.edit({ embeds: [embed] });
+            }
+            console.log(err.stack);
+          } else {
+            const msg = `**${username}#${tagline}** has been registered`;
+            const warning = {
+              name: 'Note',
+              value: 'Rank was not obtained, I will resolve this eventually so don\'t worry. :smile:',
+            };
+
+            const embed =
+              !rank || !tier
+                ? successEmbed(msg).addFields(warning)
+                : successEmbed(msg);
+            message.edit({ embeds: [embed] });
+          }
+        }
+      );
+    }
   },
   syntax(message) {
     // syntax command
