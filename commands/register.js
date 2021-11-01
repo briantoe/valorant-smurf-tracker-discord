@@ -32,6 +32,7 @@ module.exports = {
       const msg = "You didn't provide a <username>#<tagline>";
       const embed = errorEmbed(msg);
       message.channel.send({ embeds: [embed] });
+      this.syntax(message);
       return;
     }
 
@@ -42,6 +43,7 @@ module.exports = {
 
     message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
       const [username, tagline] = args[0].split('#');
+      const loginName = args[1] ? args[1] : null;
       let rank, tier;
       valAPI
         .getMMR('v1', 'na', username, tagline)
@@ -53,16 +55,16 @@ module.exports = {
           console.error(e);
         })
         .finally(() => {
-          postToDatabase(username, tagline, rank, tier, sentMsg);
+          postToDatabase(username, tagline, rank, tier, sentMsg, loginName);
         });
     });
 
-    function postToDatabase(username, tagline, rank, tier, message) {
+    function postToDatabase(username, tagline, rank, tier, message, loginName) {
       const guildId = message.guild.id;
-      const text = `INSERT INTO ${table}(username, tagline, rank, tier, server_id) VALUES($1, $2, $3, $4, $5) RETURNING *`;
+      const text = `INSERT INTO ${table}(username, tagline, rank, tier, server_id, login_name) VALUES($1, $2, $3, $4, $5, $6) RETURNING *`;
       pgPool.query(
         text,
-        [username, tagline, rank, tier, guildId],
+        [username, tagline, rank, tier, guildId, loginName],
         (err, res) => {
           if (err) {
             if (err.code === '23505') {
@@ -74,7 +76,7 @@ module.exports = {
                 .setColor('RANDOM');
               message.edit({ embeds: [embed] });
             } else {
-              const msg = `Your registration failed for some reason\n**Error Code:** ${err.code}`;
+              const msg = `Your registration failed for some reason, check your command and try again\n**Error Code:** ${err.code}`;
               const embed = errorEmbed(msg);
               message.edit({ embeds: [embed] });
             }
@@ -102,12 +104,11 @@ module.exports = {
     const embed = new MessageEmbed()
       .addFields({
         name: 'Usage',
-        value: `${prefix}${this.name} <username>#<tagline>`,
+        value: `${prefix}${this.name} <username>#<tagline> <login_name>`,
       })
       .setDescription(`**${this.description}**`)
-      .setColor('RANDOM');
-    message.channel.send({ embeds: [embed] }).then((msg) => {
-      setTimeout(() => msg.delete(), 10000);
-    });
+      .setColor('RANDOM')
+      .setTitle('Syntax');
+    message.channel.send({ embeds: [embed] });
   },
 };

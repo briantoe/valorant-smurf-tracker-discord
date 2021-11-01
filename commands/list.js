@@ -18,7 +18,7 @@ module.exports = {
   execute(client, message, args) {
     const numAccountsPerPage = !args.length ? 10 : args[0];
     function getAccountsFromDatabase() {
-      const query = `SELECT username, tagline, rank, tier FROM ${table} WHERE server_id = '${message.guild.id}' LIMIT 1000`;
+      const query = `SELECT username, tagline, rank, tier, login_name FROM ${table} WHERE server_id = '${message.guild.id}' LIMIT 1000`;
       pgPool.query(query, (err, res) => {
         if (err) {
           const embed = errorEmbed(
@@ -50,7 +50,10 @@ module.exports = {
           const rank = account.rank
             ? `Rank: ${account.rank} ${account.tier}`
             : `Rank not available`;
-          const rowValue = `${account.username}#${account.tagline}\n${rank}\n`;
+          const loginName = account.login_name
+            ? `Login Name: ${account.login_name}\n`
+            : `Login name not available`;
+          const rowValue = `${account.username}#${account.tagline}\n${loginName}\n${rank}\n`;
           return `${counter++}. ${rowValue}`;
         });
         // message.channel.send(`${listOfAccounts}`);
