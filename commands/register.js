@@ -35,6 +35,14 @@ module.exports = {
       this.syntax(message);
       return;
     }
+    if (!message.hasComma) {
+      const msg =
+        "There wasn't a comma in the arguments, I need this to register accounts with spaces in their username!";
+      const embed = errorEmbed(msg);
+      message.channel.send({ embeds: [embed] });
+      this.syntax(message);
+      return;
+    }
 
     const placeholderEmbed = new MessageEmbed().addFields({
       name: 'Fetching rank data...',
@@ -86,7 +94,7 @@ module.exports = {
             const warning = {
               name: 'Note',
               value:
-                "Rank was not obtained, I will resolve this eventually so don't worry. :smile:",
+                "Rank was not obtained, I will resolve this if possible so don't worry. :smile:",
             };
 
             const embed =
@@ -104,7 +112,7 @@ module.exports = {
     const embed = new MessageEmbed()
       .addFields({
         name: 'Usage',
-        value: `${prefix}${this.name} <username>#<tagline> <login_name>`,
+        value: `${prefix}${this.name} <username>#<tagline>, <login_name>`,
       })
       .setDescription(`**${this.description}**`)
       .setColor('RANDOM')

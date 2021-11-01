@@ -75,15 +75,29 @@ client.on('messageCreate', (message) => {
   // }
 
   // Split the message content and store the command called, and the args.
-  const messageSplit = message.content.split(/\s+/g);
-  const cmd = messageSplit[0].slice(config.prefix.length);
-  const args = messageSplit.slice(1);
+
+  // if command has arguments that need to be split by ,
+  let messageSplit, cmd, args;
+  if (message.content.includes(',')) {
+    // console.log(message.content.substr(1).split(','));
+    cmd = message.content.substr(1).split(' ')[0];
+    args = message.content
+      .substr(cmd.length + 1)
+      .split(',')
+      .map((elem) => elem.trim());
+  } else {
+    messageSplit = message.content.split(/\s+/g);
+    cmd = messageSplit[0].slice(config.prefix.length);
+    args = messageSplit.slice(1);
+  }
+
+  message.hasComma = message.content.includes(','); // for commands that need a comma to separate command args
 
   try {
     // Check if the command called exists in either the commands Collection
     // or the aliases Collection.
     let command;
-    
+
     if (client.commands.has(cmd.toLowerCase())) {
       command = client.commands.get(cmd);
     } else if (client.aliases.has(cmd)) {
