@@ -12,7 +12,7 @@ const paginationEmbed = async (
   if (emojiList.length !== 2) throw new Error('Need two emojis.');
   let page = 0;
   const curPage = await msg.channel.send({
-    embeds: [pages[page].setFooter(`Page ${page + 1} / ${pages.length}`)],
+    embeds: [pages[page].setFooter(`Page ${page + 1} / ${pages.length}`).setColor('RANDOM')],
   });
   for (const emoji of emojiList) await curPage.react(emoji);
   const reactionCollector = curPage.createReactionCollector(
