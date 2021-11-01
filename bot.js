@@ -62,12 +62,10 @@ client.on('ready', () => {
 client.on('messageCreate', (message) => {
   // Make sure the message contains the command prefix from the config.json.
   if (!message.content.startsWith(config.prefix)) {
-    console.log('does not start with prefix');
     return;
   }
   // Make sure the message author isn't a bot
   if (message.author.bot) {
-    console.log('author is a bot');
     return;
   }
   // Make sure the channel the command is called in is a text channel.

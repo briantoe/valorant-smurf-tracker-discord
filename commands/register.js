@@ -2,11 +2,13 @@
  * @author briantoe
  * @year 2021
  */
-const { Client } = require('pg');
+const { Pool } = require('pg');
 const { prefix, database } = require('../config.json');
 const { MessageEmbed } = require('discord.js');
+const { successEmbed, errorEmbed } = require('../utils/presetEmbeds');
+const valAPI = require('unofficial-valorant-api');
 
-const pgClient = new Client({
+const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
@@ -20,26 +22,39 @@ module.exports = {
   aliases: [],
   execute(client, message, args) {
     // write your logic here
+    if (!args.length) {
+      const msg = "You didn't provide a <username>#<tagline>";
+      const embed = errorEmbed(msg);
+      message.channel.send({ embeds: [embed] });
+      return;
+    }
+
     const [username, tagline] = args[0].split('#');
     const text = `INSERT INTO ${database}(username, tagline) VALUES($1, $2) RETURNING *`;
-    pgClient.query(text, [username, tagline], (err, res) => {
+    pgPool.query(text, [username, tagline], (err, res) => {
       if (err) {
-        console.log('error');
-        const embed = new MessageEmbed()
-          .addFields({
-            name: 'Error',
-            value: 'Your registration failed for some reason',
-          })
-          .setColor('RANDOM');
-        message.channel.send({embeds: [embed]}).then((msg) => {
-          setTimeout(() => msg.delete(), 10000);
-        });
-        this.syntax(message);
+        if (err.code === '23505') {
+          const embed = new MessageEmbed()
+            .addFields({
+              name: 'Error',
+              value: `**${username}#${tagline}** already exists!`,
+            })
+            .setColor('RANDOM');
+          message.channel.send({ embeds: [embed] });
+        } else {
+          const msg = `Your registration failed for some reason\n**Error Code:** ${err.code}`;
+          const embed = errorEmbed(msg);
+          message.channel.send({ embeds: [embed] });
+        }
         console.log(err.stack);
+        return;
       } else {
-        console.log(res.rows[0]);
+        const msg = `**${username}#${tagline}** has been registered`;
+        const embed = successEmbed(msg);
+        message.channel.send({ embeds: [embed] });
       }
-      pgClient.end();
+
+      //
     });
   },
   syntax(message) {
@@ -51,7 +66,7 @@ module.exports = {
       })
       .setDescription(`**${this.description}**`)
       .setColor('RANDOM');
-    message.channel.send({embeds: [embed]}).then((msg) => {
+    message.channel.send({ embeds: [embed] }).then((msg) => {
       setTimeout(() => msg.delete(), 10000);
     });
   },

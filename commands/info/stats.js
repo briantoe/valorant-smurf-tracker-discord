@@ -9,7 +9,7 @@ module.exports = {
       .setTitle('About')
       .setColor('RANDOM')
       .setDescription('Stats about this bot')
-      .addField('Created', client.user.createdAt)
+      .addField('Created', `${client.user.createdAt}`)
       .addField(
         'Heap Usage',
         `${Math.round(process.memoryUsage().heapUsed / 1048576)}mb`,
