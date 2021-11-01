@@ -19,7 +19,10 @@ module.exports = {
   execute(client, message, args) {
     const numAccountsPerPage = !args.length ? 10 : args[0];
     function getAccountsFromDatabase() {
-      const query = `SELECT username, tagline, rank, tier, login_name FROM ${table} WHERE server_id = '${message.guild.id}' LIMIT 1000`;
+      const isDev = process.env.DEV_ENV === 'true';
+      const query = `SELECT username, tagline, rank, tier, login_name FROM ${table}${
+        isDev ? '_dev' : ''
+      } WHERE server_id = '${message.guild.id}' LIMIT 1000`;
       pgPool.query(query, (err, res) => {
         if (err) {
           const embed = errorEmbed(
@@ -65,7 +68,9 @@ module.exports = {
         });
         // message.channel.send(`${listOfAccounts}`);
         // console.log(listOfAccounts);
-        return new MessageEmbed().setTitle("Accounts:").setDescription(listOfAccounts.join('\n'));
+        return new MessageEmbed()
+          .setTitle('Accounts:')
+          .setDescription(listOfAccounts.join('\n'));
       });
       paginationEmbed(message, embedList);
     }
@@ -73,7 +78,6 @@ module.exports = {
     getAccountsFromDatabase();
   },
 };
-
 
 // TODO: have the bot check for rank updates on accounts, and update the database accordingly.
 // might need to find a clever way of getting around the API request restrictions
