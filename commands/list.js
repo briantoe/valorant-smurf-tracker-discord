@@ -3,6 +3,7 @@ const paginationEmbed = require('../utils/discord.js-pagination');
 const { Pool } = require('pg');
 const { table } = require('../config.json');
 const { errorEmbed } = require('../utils/presetEmbeds');
+const { prefix } = require('../config.json');
 
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -24,10 +25,17 @@ module.exports = {
           const embed = errorEmbed(
             `The database is unreachable at this time\n**Error Code:** ${err.code}`
           );
-          message.channel.send(embed);
+          message.channel.send({ embeds: [embed] });
           console.log(err.stack);
         } else {
           // console.log(res.rows);
+          if (!res.rows.length) {
+            const embed = errorEmbed(
+              `There are no accounts registered, try registering some using the \`${prefix}register\` command`
+            );
+            message.channel.send({ embeds: [embed] });
+            return;
+          }
           paginatedAccountList = paginateRows(res.rows, numAccountsPerPage);
           // console.log(paginatedAccountList);
           generateEmbeds(paginatedAccountList);
