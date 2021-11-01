@@ -1,4 +1,4 @@
 {
   "prefix": "?",
-  "database": "account_dev"
+  "table": "account_dev"
 }

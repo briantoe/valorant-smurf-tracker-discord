@@ -3,7 +3,7 @@
  * @year 2021
  */
 const { Pool } = require('pg');
-const { prefix, database } = require('../config.json');
+const { prefix, table } = require('../config.json');
 const { MessageEmbed } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../utils/presetEmbeds');
 const valAPI = require('unofficial-valorant-api');
@@ -44,7 +44,7 @@ module.exports = {
       const [username, tagline] = args[0].split('#');
       let rank, tier;
       valAPI
-        .getMMR('v1', 'naa', username, tagline)
+        .getMMR('v1', 'na', username, tagline)
         .then((value) => {
           console.log(value);
           [rank, tier] = value.data.currenttierpatched.split(' ');
@@ -59,7 +59,7 @@ module.exports = {
 
     function postToDatabase(username, tagline, rank, tier, message) {
       const guildId = message.guild.id;
-      const text = `INSERT INTO ${database}(username, tagline, rank, tier, server_id) VALUES($1, $2, $3, $4, $5) RETURNING *`;
+      const text = `INSERT INTO ${table}(username, tagline, rank, tier, server_id) VALUES($1, $2, $3, $4, $5) RETURNING *`;
       pgPool.query(
         text,
         [username, tagline, rank, tier, guildId],
@@ -83,7 +83,8 @@ module.exports = {
             const msg = `**${username}#${tagline}** has been registered`;
             const warning = {
               name: 'Note',
-              value: 'Rank was not obtained, I will resolve this eventually so don\'t worry. :smile:',
+              value:
+                "Rank was not obtained, I will resolve this eventually so don't worry. :smile:",
             };
 
             const embed =
