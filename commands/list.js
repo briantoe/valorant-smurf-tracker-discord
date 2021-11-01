@@ -37,7 +37,6 @@ module.exports = {
             return;
           }
           paginatedAccountList = paginateRows(res.rows, numAccountsPerPage);
-          // console.log(paginatedAccountList);
           generateEmbeds(paginatedAccountList);
         }
       });
@@ -59,14 +58,14 @@ module.exports = {
             ? `Rank: ${account.rank} ${account.tier}`
             : `Rank not available`;
           const loginName = account.login_name
-            ? `Login Name: ${account.login_name}\n`
+            ? `Login Name: ${account.login_name}`
             : `Login name not available`;
           const rowValue = `${account.username}#${account.tagline}\n${loginName}\n${rank}\n`;
           return `${counter++}. ${rowValue}`;
         });
         // message.channel.send(`${listOfAccounts}`);
         // console.log(listOfAccounts);
-        return new MessageEmbed().setDescription(listOfAccounts.join('\n'));
+        return new MessageEmbed().setTitle("Accounts:").setDescription(listOfAccounts.join('\n'));
       });
       paginationEmbed(message, embedList);
     }
@@ -74,3 +73,7 @@ module.exports = {
     getAccountsFromDatabase();
   },
 };
+
+
+// TODO: have the bot check for rank updates on accounts, and update the database accordingly.
+// might need to find a clever way of getting around the API request restrictions
