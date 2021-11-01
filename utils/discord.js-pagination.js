@@ -20,7 +20,6 @@ const paginationEmbed = async (
     { time: timeout }
   );
   reactionCollector.on('collect', (reaction) => {
-    console.log(reaction);
     reaction.users.remove(msg.author);
     switch (reaction.emoji.name) {
       case emojiList[0]:

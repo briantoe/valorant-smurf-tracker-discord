@@ -18,7 +18,7 @@ module.exports = {
   execute(client, message, args) {
     const numAccountsPerPage = !args.length ? 10 : args[0];
     function getAccountsFromDatabase() {
-      const query = `SELECT username, tagline, rank, tier FROM ${table} LIMIT 1000`;
+      const query = `SELECT username, tagline, rank, tier FROM ${table} WHERE server_id = '${message.guild.id}' LIMIT 1000`;
       pgPool.query(query, (err, res) => {
         if (err) {
           const embed = errorEmbed(
