@@ -2,7 +2,7 @@ const { successEmbed } = require('../../utils/presetEmbeds');
 
 module.exports = {
   name: 'serverid', // Command name (what's gonna be used to call the command)
-  aliases: [], // Command aliases
+  aliases: ['test'], // Command aliases
 
   execute(client, message) {
     const embed = successEmbed(`bye`);
