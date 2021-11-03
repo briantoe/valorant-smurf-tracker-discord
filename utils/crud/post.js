@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-const { table } = require('../config.json');
+const { table } = require('../../config.json');
 
 module.exports = {
   post: async function (account) {

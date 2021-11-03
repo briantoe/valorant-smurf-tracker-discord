@@ -5,7 +5,7 @@
 const { prefix } = require('../config.json');
 const { MessageEmbed } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../utils/presetEmbeds');
-const { post } = require('../utils/post');
+const { post } = require('../utils/crud/post');
 const valAPI = require('unofficial-valorant-api');
 
 module.exports = {
