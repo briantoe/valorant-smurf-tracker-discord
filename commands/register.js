@@ -2,25 +2,11 @@
  * @author briantoe
  * @year 2021
  */
-const { Pool } = require('pg');
-const { prefix, table } = require('../config.json');
+const { prefix } = require('../config.json');
 const { MessageEmbed } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../utils/presetEmbeds');
 const { post } = require('../utils/post');
 const valAPI = require('unofficial-valorant-api');
-
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-
-async function getMMR(username, tagline) {
-  valAPI.getMMR('v1', 'na', username, tagline).then((value) => {
-    return value.data.currenttierpatched;
-  });
-}
 
 module.exports = {
   name: 'register',
