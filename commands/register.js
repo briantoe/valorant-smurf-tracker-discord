@@ -51,17 +51,17 @@ module.exports = {
     });
 
     message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
+      // placeholder msg is sent, gives user something indicating that the bot is fetching data from valAPI, then
+      // will edit the message once the bot is finished fetching and storing data
       const [username, tagline] = args[0].split('#');
-      const loginName = args[1] ? args[1] : null;
+      const loginName = args[1];
       let rank, tier;
       valAPI
         .getMMR('v1', 'na', username, tagline)
         .then((value) => {
           console.log(value);
+          if (value.status !== '200') return;
           [rank, tier] = value.data.currenttierpatched.split(' ');
-        })
-        .catch((e) => {
-          console.error(e);
         })
         .finally(() => {
           const account = {
@@ -88,12 +88,8 @@ module.exports = {
             })
             .catch((err) => {
               if (err.code === '23505') {
-                const embed = new MessageEmbed()
-                  .addFields({
-                    name: 'Error',
-                    value: `**${username}#${tagline}** already exists!`,
-                  })
-                  .setColor('RANDOM');
+                const msg = `**${username}#${tagline}** already exists!`;
+                const embed = errorEmbed(msg);
                 sentMsg.edit({ embeds: [embed] });
               } else {
                 const msg = `Your registration failed for some reason, check your command and try again\n**Error Code:** ${err.code}`;
