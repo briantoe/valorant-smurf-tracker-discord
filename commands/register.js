@@ -2,24 +2,11 @@
  * @author briantoe
  * @year 2021
  */
-const { Pool } = require('pg');
-const { prefix, table } = require('../config.json');
+const { prefix } = require('../config.json');
 const { MessageEmbed } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../utils/presetEmbeds');
+const { post } = require('../utils/crud/post');
 const valAPI = require('unofficial-valorant-api');
-
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-
-async function getMMR(username, tagline) {
-  valAPI.getMMR('v1', 'na', username, tagline).then((value) => {
-    return value.data.currenttierpatched;
-  });
-}
 
 module.exports = {
   name: 'register',
@@ -50,65 +37,55 @@ module.exports = {
     });
 
     message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
+      // placeholder msg is sent, gives user something indicating that the bot is fetching data from valAPI, then
+      // will edit the message once the bot is finished fetching and storing data
       const [username, tagline] = args[0].split('#');
-      const loginName = args[1] ? args[1] : null;
+      const loginName = args[1];
       let rank, tier;
       valAPI
         .getMMR('v1', 'na', username, tagline)
         .then((value) => {
           console.log(value);
+          if (value.status !== '200') return;
           [rank, tier] = value.data.currenttierpatched.split(' ');
         })
-        .catch((e) => {
-          console.error(e);
-        })
         .finally(() => {
-          postToDatabase(username, tagline, rank, tier, sentMsg, loginName);
+          const account = {
+            username,
+            tagline,
+            rank,
+            tier,
+            server_id: message.guild.id,
+            login_name: loginName,
+          };
+          post(account)
+            .then(() => {
+              const msg = `**${username}#${tagline}** has been registered`;
+              const warning = {
+                name: 'Note',
+                value:
+                  "Rank was not obtained, I will resolve this if possible so don't worry. :smile:",
+              };
+              const embed =
+                !rank || !tier
+                  ? successEmbed(msg).addFields(warning)
+                  : successEmbed(msg);
+              sentMsg.edit({ embeds: [embed] });
+            })
+            .catch((err) => {
+              if (err.code === '23505') {
+                const msg = `**${username}#${tagline}** already exists!`;
+                const embed = errorEmbed(msg);
+                sentMsg.edit({ embeds: [embed] });
+              } else {
+                const msg = `Your registration failed for some reason, check your command and try again\n**Error Code:** ${err.code}`;
+                const embed = errorEmbed(msg);
+                sentMsg.edit({ embeds: [embed] });
+              }
+              console.log(err.stack);
+            });
         });
     });
-
-    function postToDatabase(username, tagline, rank, tier, message, loginName) {
-      const guildId = message.guild.id;
-      const isDev = process.env.DEV_ENV === 'true';
-      const text = `INSERT INTO ${table}${
-        isDev ? '_dev' : ''
-      }(username, tagline, rank, tier, server_id, login_name) VALUES($1, $2, $3, $4, $5, $6) RETURNING *`;
-      pgPool.query(
-        text,
-        [username, tagline, rank, tier, guildId, loginName],
-        (err, res) => {
-          if (err) {
-            if (err.code === '23505') {
-              const embed = new MessageEmbed()
-                .addFields({
-                  name: 'Error',
-                  value: `**${username}#${tagline}** already exists!`,
-                })
-                .setColor('RANDOM');
-              message.edit({ embeds: [embed] });
-            } else {
-              const msg = `Your registration failed for some reason, check your command and try again\n**Error Code:** ${err.code}`;
-              const embed = errorEmbed(msg);
-              message.edit({ embeds: [embed] });
-            }
-            console.log(err.stack);
-          } else {
-            const msg = `**${username}#${tagline}** has been registered`;
-            const warning = {
-              name: 'Note',
-              value:
-                "Rank was not obtained, I will resolve this if possible so don't worry. :smile:",
-            };
-
-            const embed =
-              !rank || !tier
-                ? successEmbed(msg).addFields(warning)
-                : successEmbed(msg);
-            message.edit({ embeds: [embed] });
-          }
-        }
-      );
-    }
   },
   syntax(message) {
     // syntax command
