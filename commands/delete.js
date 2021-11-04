@@ -42,7 +42,7 @@ module.exports = {
         } else if (res.rowCount === 1) {
           const embed = successEmbed('Account deleted successfully :smile:');
           sentMsg.edit({ embeds: [embed] });
-        } else {
+        } else if (res.rowCount > 1) {
           const accountsDeleted = res.rows.map(
             (row) => `${row.username}#${row.tagline}`
           );
@@ -55,9 +55,15 @@ module.exports = {
             },
             {
               name: 'Accounts deleted: ',
-              value: `${accountsDeleted.toString()}`,
+              value: `${JSON.stringify(accountsDeleted)}`,
             }
           );
+          sentMsg.edit({ embeds: [embed] });
+        } else {
+          const embed = errorEmbed('Something unexpected happened!').addFields({
+            name: 'Result',
+            value: JSON.stringify(res),
+          });
           sentMsg.edit({ embeds: [embed] });
         }
       });

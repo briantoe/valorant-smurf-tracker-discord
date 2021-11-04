@@ -13,7 +13,7 @@ module.exports = {
     const isDev = process.env.DEV_ENV === 'true';
     const query = `DELETE FROM ${table}${
       isDev ? '_dev' : ''
-    } WHERE (username = ($1) AND tagline = ($2) AND server_id = ($3)) OR (login_name = ($4) AND server_id = ($3))`;
+    } WHERE (username = ($1) AND tagline = ($2) AND server_id = ($3)) OR (login_name = ($4) AND server_id = ($3)) RETURNING *`;
 
     const value = await pgPool.query(query, [
       account.username,
