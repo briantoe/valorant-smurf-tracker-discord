@@ -1,8 +1,9 @@
 const { MessageEmbed } = require('discord.js');
 const { Pool } = require('pg');
 const { table } = require('../config.json');
-const { errorEmbed } = require('../utils/presetEmbeds');
+const { errorEmbed, successEmbed } = require('../utils/presetEmbeds');
 const { prefix } = require('../config.json');
+const { deleteAccount } = require('../utils/crud/delete');
 
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -13,21 +14,11 @@ const pgPool = new Pool({
 
 module.exports = {
   name: 'delete',
-  description: 'Delete an account using their username#tagline or login_name',
-  aliases: [],
+  description: 'Delete an account using their username#tagline or login name',
+  aliases: ['remove'],
   execute(client, message, args) {
-    const numAccountsPerPage = !args.length ? 10 : args[0];
-
     if (!args.length) {
-      const msg = "You didn't provide a <username>#<tagline>";
-      const embed = errorEmbed(msg);
-      message.channel.send({ embeds: [embed] });
-      this.syntax(message);
-      return;
-    }
-    if (!message.hasComma) {
-      const msg =
-        "There wasn't a comma in the arguments, I need this to register accounts with spaces in their username!";
+      const msg = "You didn't provide a <username>#<tagline> OR login name!";
       const embed = errorEmbed(msg);
       message.channel.send({ embeds: [embed] });
       this.syntax(message);
@@ -35,55 +26,62 @@ module.exports = {
     }
 
     const placeholderEmbed = new MessageEmbed().addFields({
-      name: 'Fetching rank data...',
+      name: 'Deleting account...',
       value: 'Please wait :smile:',
     });
 
     message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
-      const [username, tagline] = args[0].split('#');
-      const loginName = args[1] ? args[1] : null;
-      let rank, tier;
-      valAPI
-        .getMMR('v1', 'na', username, tagline)
-        .then((value) => {
-          console.log(value);
-          [rank, tier] = value.data.currenttierpatched.split(' ');
-        })
-        .catch((e) => {
-          console.error(e);
-        })
-        .finally(() => {
-          deleteAccount(username, tagline, loginName);
-        });
-    });
-
-    function deleteAccount(username, tagline, loginName) {}
-
-    function getAccountsFromDatabase() {
-      const isDev = process.env.DEV_ENV === 'true';
-      const query = `SELECT username, tagline, rank, tier, login_name FROM ${table}${
-        isDev ? '_dev' : ''
-      } WHERE server_id = '${message.guild.id}' LIMIT 1000`;
-      pgPool.query(query, (err, res) => {
-        if (err) {
-          const embed = errorEmbed(
-            `The database is unreachable at this time\n**Error Code:** ${err.code}`
-          );
-          message.channel.send({ embeds: [embed] });
-          console.log(err.stack);
+      let username, tagline, loginName;
+      if (args[0].includes('#')) {
+        [username, tagline] = args[0].split('#');
+      } else {
+        loginName = args[0];
+      }
+      const serverId = message.guild.id;
+      const account = {
+        username,
+        tagline,
+        serverId,
+        loginName,
+      };
+      deleteAccount(account).then((res) => {
+        if (res.rowCount === 0) {
+          const embed = errorEmbed('No account was deleted :thinking:');
+          sentMsg.edit({ embeds: [embed] });
+        } else if (res.rowCount === 1) {
+          const embed = successEmbed('Account deleted successfully :smile:');
+          sentMsg.edit({ embeds: [embed] });
         } else {
-          // console.log(res.rows);
-          if (!res.rows.length) {
-            const embed = errorEmbed(
-              `There are no accounts registered, try registering some using the \`${prefix}register\` command`
-            );
-            message.channel.send({ embeds: [embed] });
-            return;
-          }
-          paginatedAccountList = paginateRows(res.rows, numAccountsPerPage);
-          generateEmbeds(paginatedAccountList);
+          const accountsDeleted = res.rows.map(
+            (row) => `${row.username}#${row.tagline}`
+          );
+          const embed = successEmbed(
+            'Account(s) deleted successfully? :thinking:'
+          ).addFields(
+            {
+              name: 'Note',
+              value: `${res.rowCount} accounts were deleted, strange...\nMight want to let Brian and that person know.`,
+            },
+            {
+              name: 'Accounts deleted: ',
+              value: `${accountsDeleted.toString()}`,
+            }
+          );
+          sentMsg.edit({ embeds: [embed] });
         }
       });
-    }
+    });
+  },
+  syntax(message) {
+    // syntax command
+    const embed = new MessageEmbed()
+      .addFields({
+        name: 'Usage',
+        value: `${prefix}${this.name} <username>#<tagline> OR <login_name>`,
+      })
+      .setDescription(`**${this.description}**`)
+      .setColor('RANDOM')
+      .setTitle('Syntax');
+    message.channel.send({ embeds: [embed] });
   },
 };
