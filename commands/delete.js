@@ -1,16 +1,7 @@
 const { MessageEmbed } = require('discord.js');
-const { Pool } = require('pg');
-const { table } = require('../config.json');
 const { errorEmbed, successEmbed } = require('../utils/presetEmbeds');
 const { prefix } = require('../config.json');
 const { deleteAccount } = require('../utils/crud/delete');
-
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
 
 module.exports = {
   name: 'delete',
