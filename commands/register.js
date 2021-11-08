@@ -43,11 +43,11 @@ module.exports = {
       const loginName = args[1];
       let rank, tier;
       valAPI
-        .getMMR('v1', 'na', username, tagline)
-        .then((value) => {
-          console.log(value);
-          if (value.status !== '200') return;
-          [rank, tier] = value.data.currenttierpatched.split(' ');
+        .getMMR('v2', 'na', username, tagline)
+        .then((res) => {
+          console.log(res);
+          if (res.status !== '200') return;
+          [rank, tier] = res.data.current_data.currenttierpatched.split(' ');
         })
         .finally(() => {
           const account = {
