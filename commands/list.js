@@ -1,16 +1,11 @@
 const { MessageEmbed } = require('discord.js');
 const paginationEmbed = require('../utils/discord.js-pagination');
-const { Pool } = require('pg');
-const { table } = require('../config.json');
+const { getAllByServerId } = require('../utils/crud/getAllByServerId');
+const { update } = require('../utils/crud/update');
 const { errorEmbed } = require('../utils/presetEmbeds');
 const { prefix } = require('../config.json');
-
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+const moment = require('moment');
+const valAPI = require('unofficial-valorant-api');
 
 module.exports = {
   name: 'list',
@@ -18,31 +13,79 @@ module.exports = {
   aliases: [],
   execute(client, message, args) {
     const numAccountsPerPage = !args.length ? 10 : args[0];
-    function getAccountsFromDatabase() {
-      const isDev = process.env.DEV_ENV === 'true';
-      const query = `SELECT username, tagline, rank, tier, login_name FROM ${table}${
-        isDev ? '_dev' : ''
-      } WHERE server_id = '${message.guild.id}' LIMIT 1000`;
-      pgPool.query(query, (err, res) => {
-        if (err) {
+    getAllByServerId(message.guild.id)
+      .then((res) => {
+        if (!res.rowCount) {
           const embed = errorEmbed(
-            `The database is unreachable at this time\n**Error Code:** ${err.code}`
+            `There are no accounts registered, try registering some using the \`${prefix}register\` command`
           );
           message.channel.send({ embeds: [embed] });
-          console.log(err.stack);
-        } else {
-          // console.log(res.rows);
-          if (!res.rows.length) {
-            const embed = errorEmbed(
-              `There are no accounts registered, try registering some using the \`${prefix}register\` command`
-            );
-            message.channel.send({ embeds: [embed] });
-            return;
-          }
-          paginatedAccountList = paginateRows(res.rows, numAccountsPerPage);
-          generateEmbeds(paginatedAccountList);
+          return;
         }
+        // const oldRows = res.rows.filter((row) => isOldRow(row));
+        // const goodRows = res.rows.filter((row) => !isOldRow(row));
+
+        updateRanks(res.rows).then((rows) => {
+          const paginatedAccountList = paginateRows(rows, numAccountsPerPage);
+          generateEmbeds(paginatedAccountList);
+        });
+      })
+      .catch((err) => {
+        const embed = errorEmbed(
+          `The database is unreachable at this time\n**Error Code:** ${err.code}`
+        );
+        message.channel.send({ embeds: [embed] });
+        console.log(err.stack);
       });
+
+    function isOldRow(row) {
+      const lastUpdate = moment(row.modified).utc();
+      const nowTime = moment().utc();
+      return Math.abs(lastUpdate.diff(nowTime, 'hours')) > 0;
+    }
+
+    async function updateRanks(rows) {
+      const newRows = [];
+
+      for (const row of rows) {
+        const r = row;
+        const lastUpdate = moment(row.modified).utc();
+        const nowTime = moment().utc();
+        const difference = Math.abs(lastUpdate.diff(nowTime, 'hours'));
+        if (difference > 0) {
+          //(difference + 100 > 0) {
+          const res = await valAPI.getMMR(
+            'v2',
+            'na',
+            row.username,
+            row.tagline
+          );
+          if (res.status == '200') {
+            [r.rank, r.tier] =
+              res.data.current_data.currenttierpatched.split(' ');
+          }
+        }
+        newRows.push(r);
+        // console.log(r)
+      }
+      // rows.forEach((row) => {
+      //   const r = row;
+      //   const lastUpdate = moment(row.modified).utc();
+      //   const nowTime = moment().utc();
+      //   const difference = Math.abs(lastUpdate.diff(nowTime, 'hours'));
+      //   if (true) {
+      //     //(difference + 100 > 0) {
+      //     valAPI.getMMR('v2', 'na', row.username, row.tagline).then((res) => {
+      //       if (res.status === '200') {
+      //         [r.rank, r.tier] =
+      //           res.data.current_data.currenttierpatched.split(' ');
+      //       }
+      //       newRows.push(r);
+      //     });
+      //   }
+      // });
+      // // console.log(newRows);
+      return newRows;
     }
 
     function paginateRows(rows, numAccountsPerPage) {
@@ -53,12 +96,13 @@ module.exports = {
         .map((_) => rows.splice(0, numAccountsPerPage));
       return paginatedAccountList;
     }
+
     function generateEmbeds(paginatedAccountList) {
       let counter = 1;
       const embedList = paginatedAccountList.map((accounts) => {
         const listOfAccounts = accounts.map((account) => {
           const rank = account.rank
-            ? `Rank: ${account.rank} ${account.tier}`
+            ? `Rank: ${account.rank} ${account.tier ?? ''}`
             : `Rank not available`;
           const loginName = account.login_name
             ? `Login Name: ${account.login_name}`
@@ -74,8 +118,6 @@ module.exports = {
       });
       paginationEmbed(message, embedList);
     }
-
-    getAccountsFromDatabase();
   },
 };
 

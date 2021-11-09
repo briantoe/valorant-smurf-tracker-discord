@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const { table } = require('../../config.json');
 
 module.exports = {
-  deleteAccount: async function (account) {
+  getAllByServerId: async function (serverId) {
     const pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: {
@@ -11,16 +11,10 @@ module.exports = {
     });
 
     const isDev = process.env.DEV_ENV === 'true';
-    const query = `DELETE FROM ${table}${
+    const query = `SELECT username, tagline, rank, tier, login_name, modified FROM ${table}${
       isDev ? '_dev' : ''
-    } WHERE (username = $1 AND tagline = $2 AND server_id = $3) OR (login_name = $4 AND server_id = $3) RETURNING *`;
-
-    const value = await pgPool.query(query, [
-      account.username,
-      account.tagline,
-      account.serverId,
-      account.loginName,
-    ]);
+    } WHERE server_id = '${serverId}' LIMIT 1000`;
+    const value = await pgPool.query(query);
     if (value.code) {
       throw Error(value);
     }

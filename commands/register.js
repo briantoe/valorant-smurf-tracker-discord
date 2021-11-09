@@ -46,7 +46,7 @@ module.exports = {
         .getMMR('v2', 'na', username, tagline)
         .then((res) => {
           console.log(res);
-          if (res.status !== '200') return;
+          if (res.status != '200') return;
           [rank, tier] = res.data.current_data.currenttierpatched.split(' ');
         })
         .finally(() => {
