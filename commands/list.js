@@ -22,12 +22,25 @@ module.exports = {
           message.channel.send({ embeds: [embed] });
           return;
         }
-        // const oldRows = res.rows.filter((row) => isOldRow(row));
-        // const goodRows = res.rows.filter((row) => !isOldRow(row));
 
         updateRanks(res.rows).then((rows) => {
+          rows.forEach((row) => {
+            console.log(row);
+            //attach serverId to row!!!
+            update(row)
+              .then((row) => {
+                // console.log('good');
+                // console.log(row.rowCount, row.rows)
+                
+              })
+              .catch((err) => {
+                console.log('error');
+              });
+          });
+          console.log('all rows should be printed now');
           const paginatedAccountList = paginateRows(rows, numAccountsPerPage);
           generateEmbeds(paginatedAccountList);
+          console.log('embed sent');
         });
       })
       .catch((err) => {
@@ -38,22 +51,12 @@ module.exports = {
         console.log(err.stack);
       });
 
-    function isOldRow(row) {
-      const lastUpdate = moment(row.modified).utc();
-      const nowTime = moment().utc();
-      return Math.abs(lastUpdate.diff(nowTime, 'hours')) > 0;
-    }
-
     async function updateRanks(rows) {
-      const newRows = [];
-
-      for (const row of rows) {
-        const r = row;
+      const unresolved = rows.map(async (row) => {
         const lastUpdate = moment(row.modified).utc();
         const nowTime = moment().utc();
         const difference = Math.abs(lastUpdate.diff(nowTime, 'hours'));
         if (difference > 0) {
-          //(difference + 100 > 0) {
           const res = await valAPI.getMMR(
             'v2',
             'na',
@@ -61,31 +64,14 @@ module.exports = {
             row.tagline
           );
           if (res.status == '200') {
-            [r.rank, r.tier] =
+            [row.rank, row.tier] =
               res.data.current_data.currenttierpatched.split(' ');
           }
         }
-        newRows.push(r);
-        // console.log(r)
-      }
-      // rows.forEach((row) => {
-      //   const r = row;
-      //   const lastUpdate = moment(row.modified).utc();
-      //   const nowTime = moment().utc();
-      //   const difference = Math.abs(lastUpdate.diff(nowTime, 'hours'));
-      //   if (true) {
-      //     //(difference + 100 > 0) {
-      //     valAPI.getMMR('v2', 'na', row.username, row.tagline).then((res) => {
-      //       if (res.status === '200') {
-      //         [r.rank, r.tier] =
-      //           res.data.current_data.currenttierpatched.split(' ');
-      //       }
-      //       newRows.push(r);
-      //     });
-      //   }
-      // });
-      // // console.log(newRows);
-      return newRows;
+        return row;
+      });
+      const resolved = await Promise.all(unresolved);
+      return resolved;
     }
 
     function paginateRows(rows, numAccountsPerPage) {
