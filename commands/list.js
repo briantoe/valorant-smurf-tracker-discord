@@ -28,20 +28,14 @@ module.exports = {
             console.log(row);
             //attach serverId to row!!!
             row.serverId = message.guild.id;
-            update(row)
-              .then((row) => {
-                // console.log('good');
-                // console.log(row.rowCount, row.rows)
-                // I am brian and i like dicks
-              })
-              .catch((err) => {
-                console.log('update error');
-              });
+            row.modified = moment().utc();
+            update(row).catch((err) => {
+              console.log('update error');
+              console.log(err);
+            });
           });
-          console.log('all rows should be printed now');
           const paginatedAccountList = paginateRows(rows, numAccountsPerPage);
           generateEmbeds(paginatedAccountList);
-          console.log('embed sent');
         });
       })
       .catch((err) => {
@@ -67,6 +61,9 @@ module.exports = {
           if (res.status == '200') {
             [row.rank, row.tier] =
               res.data.current_data.currenttierpatched.split(' ');
+          } else {
+            console.log('api didnt work :(');
+            console.log(res);
           }
         }
         return row;

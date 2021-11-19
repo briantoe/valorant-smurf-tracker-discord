@@ -22,6 +22,7 @@ module.exports = {
       account.username,
       account.tagline,
       account.serverId,
+      account.modified,
     ]);
     if (value.code) {
       throw Error(value);
