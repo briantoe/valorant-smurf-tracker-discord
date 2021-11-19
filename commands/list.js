@@ -27,14 +27,15 @@ module.exports = {
           rows.forEach((row) => {
             console.log(row);
             //attach serverId to row!!!
+            row.serverId = message.guild.id;
             update(row)
               .then((row) => {
                 // console.log('good');
                 // console.log(row.rowCount, row.rows)
-                
+                // I am brian and i like dicks
               })
               .catch((err) => {
-                console.log('error');
+                console.log('update error');
               });
           });
           console.log('all rows should be printed now');
