@@ -13,40 +13,49 @@ module.exports = {
   aliases: [],
   execute(client, message, args) {
     const numAccountsPerPage = !args.length ? 10 : args[0];
-    getAllByServerId(message.guild.id)
-      .then((res) => {
-        if (!res.rowCount) {
-          const embed = errorEmbed(
-            `There are no accounts registered, try registering some using the \`${prefix}register\` command`
-          );
-          message.channel.send({ embeds: [embed] });
-          return;
-        }
+    const placeholderEmbed = new MessageEmbed().addFields({
+      name: 'Fetching new data...',
+      value: 'Please wait :smile:',
+    });
 
-        updateRanks(res.rows).then((rows) => {
-          rows.forEach((row) => {
-            console.log(row);
-            //attach serverId to row!!!
-            row.serverId = message.guild.id;
-            row.modified = moment().utc();
-            update(row).catch((err) => {
-              console.log('update error');
-              console.log(err);
+    message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
+      getAllByServerId(message.guild.id)
+        .then((res) => {
+          if (!res.rowCount) {
+            const embed = errorEmbed(
+              `There are no accounts registered, try registering some using the \`${prefix}register\` command`
+            );
+            sentMsg.edit({ embeds: [embed] });
+            return;
+          }
+
+          fetchRanks(res.rows).then((rows) => {
+            rows.forEach((row) => {
+              //attach serverId to row!!!
+              row.serverId = message.guild.id;
+              row.modified = moment().utc().toDate();
+
+              update(row).catch((err) => {
+                console.log('update error');
+                console.log(err);
+              });
+            });
+            const paginatedAccountList = paginateRows(rows, numAccountsPerPage);
+            generateEmbeds(paginatedAccountList).then(() => {
+              sentMsg.delete();
             });
           });
-          const paginatedAccountList = paginateRows(rows, numAccountsPerPage);
-          generateEmbeds(paginatedAccountList);
+        })
+        .catch((err) => {
+          const embed = errorEmbed(
+            `The database is unreachable at this time\n**Error Code:** ${err.code}`
+          );
+          sentMsg.edit({ embeds: [embed] });
+          console.log(err.stack);
         });
-      })
-      .catch((err) => {
-        const embed = errorEmbed(
-          `The database is unreachable at this time\n**Error Code:** ${err.code}`
-        );
-        message.channel.send({ embeds: [embed] });
-        console.log(err.stack);
-      });
+    });
 
-    async function updateRanks(rows) {
+    async function fetchRanks(rows) {
       const unresolved = rows.map(async (row) => {
         const lastUpdate = moment(row.modified).utc();
         const nowTime = moment().utc();
@@ -62,7 +71,6 @@ module.exports = {
             [row.rank, row.tier] =
               res.data.current_data.currenttierpatched.split(' ');
           } else {
-            console.log('api didnt work :(');
             console.log(res);
           }
         }
@@ -81,7 +89,7 @@ module.exports = {
       return paginatedAccountList;
     }
 
-    function generateEmbeds(paginatedAccountList) {
+    async function generateEmbeds(paginatedAccountList) {
       let counter = 1;
       const embedList = paginatedAccountList.map((accounts) => {
         const listOfAccounts = accounts.map((account) => {
@@ -94,8 +102,6 @@ module.exports = {
           const rowValue = `${account.username}#${account.tagline}\n${loginName}\n${rank}\n`;
           return `${counter++}. ${rowValue}`;
         });
-        // message.channel.send(`${listOfAccounts}`);
-        // console.log(listOfAccounts);
         return new MessageEmbed()
           .setTitle('Accounts:')
           .setDescription(listOfAccounts.join('\n'));

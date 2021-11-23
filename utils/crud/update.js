@@ -13,7 +13,7 @@ module.exports = {
     const isDev = process.env.DEV_ENV === 'true';
     const query = `UPDATE ${table}${
       isDev ? '_dev' : ''
-    } SET rank = $1, tier = $2 
+    } SET rank = $1, tier = $2, modified = $6
     WHERE username = $3 AND tagline = $4 AND server_id = $5 RETURNING *`;
 
     const value = await pgPool.query(query, [
