@@ -59,8 +59,8 @@ module.exports = {
       const unresolved = rows.map(async (row) => {
         const lastUpdate = moment(row.modified).utc();
         const nowTime = moment().utc();
-        const difference = Math.abs(lastUpdate.diff(nowTime, 'hours'));
-        if (difference > 0) {
+        const difference = Math.abs(lastUpdate.diff(nowTime, 'minutes'));
+        if (difference > 30) {
           const res = await valAPI.getMMR(
             'v2',
             'na',
