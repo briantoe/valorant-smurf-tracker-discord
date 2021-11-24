@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const { table } = require('../../config.json');
 
 module.exports = {
-  deleteAccount: async function (account) {
+  update: async function (account) {
     const pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: {
@@ -11,15 +11,18 @@ module.exports = {
     });
 
     const isDev = process.env.DEV_ENV === 'true';
-    const query = `DELETE FROM ${table}${
+    const query = `UPDATE ${table}${
       isDev ? '_dev' : ''
-    } WHERE (username = $1 AND tagline = $2 AND server_id = $3) OR (login_name = $4 AND server_id = $3) RETURNING *`;
+    } SET rank = $1, tier = $2, modified = $6
+    WHERE username = $3 AND tagline = $4 AND server_id = $5 RETURNING *`;
 
     const value = await pgPool.query(query, [
+      account.rank,
+      account.tier,
       account.username,
       account.tagline,
       account.serverId,
-      account.loginName,
+      account.modified,
     ]);
     if (value.code) {
       throw Error(value);

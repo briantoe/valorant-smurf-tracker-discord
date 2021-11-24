@@ -1,16 +1,11 @@
 const { MessageEmbed } = require('discord.js');
 const paginationEmbed = require('../utils/discord.js-pagination');
-const { Pool } = require('pg');
-const { table } = require('../config.json');
+const { getAllByServerId } = require('../utils/crud/getAllByServerId');
+const { update } = require('../utils/crud/update');
 const { errorEmbed } = require('../utils/presetEmbeds');
 const { prefix } = require('../config.json');
-
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+const moment = require('moment');
+const valAPI = require('unofficial-valorant-api');
 
 module.exports = {
   name: 'list',
@@ -18,31 +13,71 @@ module.exports = {
   aliases: [],
   execute(client, message, args) {
     const numAccountsPerPage = !args.length ? 10 : args[0];
-    function getAccountsFromDatabase() {
-      const isDev = process.env.DEV_ENV === 'true';
-      const query = `SELECT username, tagline, rank, tier, login_name FROM ${table}${
-        isDev ? '_dev' : ''
-      } WHERE server_id = '${message.guild.id}' LIMIT 1000`;
-      pgPool.query(query, (err, res) => {
-        if (err) {
-          const embed = errorEmbed(
-            `The database is unreachable at this time\n**Error Code:** ${err.code}`
-          );
-          message.channel.send({ embeds: [embed] });
-          console.log(err.stack);
-        } else {
-          // console.log(res.rows);
-          if (!res.rows.length) {
+    const placeholderEmbed = new MessageEmbed().addFields({
+      name: 'Fetching new data...',
+      value: 'Please wait :smile:',
+    });
+
+    message.channel.send({ embeds: [placeholderEmbed] }).then((sentMsg) => {
+      getAllByServerId(message.guild.id)
+        .then((res) => {
+          if (!res.rowCount) {
             const embed = errorEmbed(
               `There are no accounts registered, try registering some using the \`${prefix}register\` command`
             );
-            message.channel.send({ embeds: [embed] });
+            sentMsg.edit({ embeds: [embed] });
             return;
           }
-          paginatedAccountList = paginateRows(res.rows, numAccountsPerPage);
-          generateEmbeds(paginatedAccountList);
+
+          fetchRanks(res.rows).then((rows) => {
+            rows.forEach((row) => {
+              //attach serverId to row!!!
+              row.serverId = message.guild.id;
+              row.modified = moment().utc().toDate();
+
+              update(row).catch((err) => {
+                console.log('update error');
+                console.log(err);
+              });
+            });
+            const paginatedAccountList = paginateRows(rows, numAccountsPerPage);
+            generateEmbeds(paginatedAccountList).then(() => {
+              sentMsg.delete();
+            });
+          });
+        })
+        .catch((err) => {
+          const embed = errorEmbed(
+            `The database is unreachable at this time\n**Error Code:** ${err.code}`
+          );
+          sentMsg.edit({ embeds: [embed] });
+          console.log(err.stack);
+        });
+    });
+
+    async function fetchRanks(rows) {
+      const unresolved = rows.map(async (row) => {
+        const lastUpdate = moment(row.modified).utc();
+        const nowTime = moment().utc();
+        const difference = Math.abs(lastUpdate.diff(nowTime, 'minutes'));
+        if (difference > 30) {
+          const res = await valAPI.getMMR(
+            'v2',
+            'na',
+            row.username,
+            row.tagline
+          );
+          if (res.status == '200') {
+            [row.rank, row.tier] =
+              res.data.current_data.currenttierpatched.split(' ');
+          } else {
+            console.log(res);
+          }
         }
+        return row;
       });
+      const resolved = await Promise.all(unresolved);
+      return resolved;
     }
 
     function paginateRows(rows, numAccountsPerPage) {
@@ -53,12 +88,13 @@ module.exports = {
         .map((_) => rows.splice(0, numAccountsPerPage));
       return paginatedAccountList;
     }
-    function generateEmbeds(paginatedAccountList) {
+
+    async function generateEmbeds(paginatedAccountList) {
       let counter = 1;
       const embedList = paginatedAccountList.map((accounts) => {
         const listOfAccounts = accounts.map((account) => {
           const rank = account.rank
-            ? `Rank: ${account.rank} ${account.tier}`
+            ? `Rank: ${account.rank} ${account.tier ?? ''}`
             : `Rank not available`;
           const loginName = account.login_name
             ? `Login Name: ${account.login_name}`
@@ -66,16 +102,12 @@ module.exports = {
           const rowValue = `${account.username}#${account.tagline}\n${loginName}\n${rank}\n`;
           return `${counter++}. ${rowValue}`;
         });
-        // message.channel.send(`${listOfAccounts}`);
-        // console.log(listOfAccounts);
         return new MessageEmbed()
           .setTitle('Accounts:')
           .setDescription(listOfAccounts.join('\n'));
       });
       paginationEmbed(message, embedList);
     }
-
-    getAccountsFromDatabase();
   },
 };
 
